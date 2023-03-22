@@ -43,7 +43,13 @@ public class Exercise_3 {
         public List<Long> getPath() {
             return path;
         }
-
+        public List<String> formatPath(Map<Long, String> a) {
+            ArrayList<String> temp = new ArrayList<String>();
+            for (int i = 0; i < path.size(); i++) {
+                temp.add(a.get(path.get(i)));
+            }
+            return temp;
+        }
         public void setPath(List<Long> path) {
             this.path = path;
         }
@@ -52,18 +58,14 @@ public class Exercise_3 {
     private static class VProg extends AbstractFunction3<Long, VertexProperty, VertexProperty, VertexProperty> implements Serializable {
         @Override
         public VertexProperty apply(Long vertexID, VertexProperty vertexValue, VertexProperty message){
-            System.out.println(message.getCost());
 //            return vertexValue;
 
             if (message.getCost() >= Integer.MAX_VALUE || message.getCost()<0) {             // superstep 0
                 return vertexValue;
             } else {                                        // superstep > 0
-                System.out.println("I am here");
                 Integer newCost = Math.min(vertexValue.getCost(),message.getCost());
                 List<Long> newPath;
-//                Sysprint(message.getPath());
                 if (newCost.equals(vertexValue.getCost())) {
-                    System.out.println(vertexValue.getPath());
                     newPath = message.getPath();
                 } else {
                     newPath = message.getPath();
@@ -86,7 +88,6 @@ public class Exercise_3 {
                 // propagate source vertex value and path
                 List<Long> newPath = new ArrayList<>(sourceVertex._2.getPath());
                 newPath.add((Long) triplet.dstId());
-                System.out.println(newPath);
                 VertexProperty newVertexValue = new VertexProperty(sourceVertex._2.getCost() + weight, newPath);
                 return JavaConverters.asScalaIteratorConverter(Arrays.asList(new Tuple2<Object,VertexProperty>(triplet.dstId(), newVertexValue)).iterator()).asScala();
             }
@@ -100,7 +101,14 @@ public class Exercise_3 {
     }
 
     public static void shortestPathsExt(JavaSparkContext ctx) {
-
+        Map<Long, String> labels = ImmutableMap.<Long, String>builder()
+                .put(1l, "A")
+                .put(2l, "B")
+                .put(3l, "C")
+                .put(4l, "D")
+                .put(5l, "E")
+                .put(6l, "F")
+                .build();
         ArrayList<Long> arr = new ArrayList<Long>();
         arr.add(1L);
         List<Tuple2<Object, VertexProperty>> verticesList = Lists.newArrayList(
@@ -115,11 +123,6 @@ public class Exercise_3 {
 
         // edges RDD
         List<Edge<Integer>> edgesList = Arrays.asList(
-//                new Edge<>(1L, 2L, 1),
-//                new Edge<>(2L, 3L, 1),
-//                new Edge<>(3L, 4L, 1),
-//                new Edge<>(4L, 5L, 1),
-//                new Edge<>(5L, 1L, -5)
                 new Edge<Integer>(1l,2l, 4), // A --> B (4)
                 new Edge<Integer>(1l,3l, 2), // A --> C (2)
                 new Edge<Integer>(2l,3l, 5), // B --> C (5)
@@ -129,9 +132,8 @@ public class Exercise_3 {
                 new Edge<Integer>(4l, 6l, 11) // D --> F (11)
         );
         JavaRDD<Edge<Integer>> edges = ctx.parallelize(edgesList);
-
+        
         int source = 1;
-
 
         int numIter = 5;
         Graph<VertexProperty, Integer> resultGraph = Graph.apply(vertices.rdd(),edges.rdd(), new VertexProperty(Integer.MAX_VALUE, new ArrayList<>()),StorageLevel.MEMORY_ONLY(), StorageLevel.MEMORY_ONLY(), ClassTag$.MODULE$.apply(VertexProperty.class),scala.reflect.ClassTag$.MODULE$.apply(Integer.class));
@@ -147,9 +149,8 @@ public class Exercise_3 {
                 ClassTag$.MODULE$.apply(VertexProperty.class)).vertices().toJavaRDD()
                 .foreach(v -> {
                     Tuple2<Object,VertexProperty> vertex = (Tuple2<Object, VertexProperty>)v;
-                    System.out.println("Minimum cost to get from  to "+vertex._1+" is "+vertex._2.getCost()+vertex._2.getPath());
+                    System.out.println("Minimum cost to get from "+ labels.get(1l) +" to "+labels.get(vertex._1)+" is "+vertex._2.formatPath(labels)+" with cost "+vertex._2.getCost());
                 });
-//        resultDf.show();
 
     }
 }
